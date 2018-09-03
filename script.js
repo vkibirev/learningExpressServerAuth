@@ -27,7 +27,8 @@ class DB {
 
 app.get('/userpage', function(req, resp) {    
     connection.then(onConnect).then(onFound).then(checkSessionId);
-
+    console.log(req.session.currentActiveUser);
+    
     function onConnect(client) {
         const db = client.db('users');
         const col = db.collection('userData');
@@ -39,14 +40,15 @@ app.get('/userpage', function(req, resp) {
     }
 
     function checkSessionId(data) {
-        if(data) {
+        if(data.length) {
+            req.session.currentActiveUser = null;
+            console.log('into ', req.session.currentActiveUser);
             resp.end('right id');
         } else {
             console.log('wrong id');            
             resp.redirect('/');
         }
     }
-
 }); 
 
 app.get('/', function(req, resp){
@@ -73,7 +75,7 @@ app.post('/', function(req, resp) {
         function checkUser(cursor) { 
             if (cursor.length) {
                 req.session.currentActiveUser = cursor[0]._id;      
-                resp.redirect('/userpage');
+                resp.redirect('/userpage');                
             } else {
                 userDataCollection.insertOne(data);
                 resp.redirect('/userpage');
