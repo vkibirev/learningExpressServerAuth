@@ -4,7 +4,7 @@ const mongo = require('mongodb');
 const twig = require('twig');
 twig.cache(false);
 const cs = require('cookie-session');
-const client = mongo.connect('mongodb://127.0.0.1:27017', {useNewUrlParser: true})
+const connection = mongo.connect('mongodb://127.0.0.1:27017', {useNewUrlParser: true});
 
 app.use(cs({keys:['test', 'values']}));
 app.use('/public/', express.static('public'));
@@ -25,42 +25,65 @@ class DB {
     }
 }
 
+app.get('/userpage', function(req, resp) {    
+    connection.then(onConnect).then(onFound).then(checkSessionId);
+
+    function onConnect(client) {
+        const db = client.db('users');
+        const col = db.collection('userData');
+        return col.find({_id:{$eq:req.session.currentActiveUser}});
+    }
+
+    function onFound(cursor) {
+        return cursor.toArray();
+    }
+
+    function checkSessionId(data) {
+        if(data) {
+            resp.end('right id');
+        } else {
+            console.log('wrong id');            
+            resp.redirect('/');
+        }
+    }
+
+}); 
+
 app.get('/', function(req, resp){
-    resp.render('login');
+    resp.render('login');    
 });
 
 app.post('/', function(req, resp) {
-    client.then(writeUserDataToDB);
+    connection.then(writeUserDataToDB);
 
     function writeUserDataToDB(connection) {
         let data = {username: req.body.username, password: req.body.password};
-        // let data = {username: 'test1', password: 'testPass1'};
         const db = new DB('users', 'userData', connection);        
         const userDataCollection = db.getCollection();
-        console.log('1 layer ', data); //debug
         
-        userDataCollection.find({username:{$eq:req.body.username}
+        userDataCollection.find({
+            $and:[
+                {username:{$eq:req.body.username}}, 
+                {password:{$eq:req.body.password}}
+            ]
                         }).toArray(            
                         ).then(checkUser
                         ).catch(err);
 
         function checkUser(cursor) { 
-            console.log('2 layer ', data); //debug
-            if (data.username === cursor[0].username) {
-                console.log('2.1 layer ', data);    //debug             
-                console.log('existing user!', cursor[0].username);   
+            if (cursor.length) {
+                req.session.currentActiveUser = cursor[0]._id;      
+                resp.redirect('/userpage');
             } else {
-                console.log('2.2 layer ', data); //debug
                 userDataCollection.insertOne(data);
+                resp.redirect('/userpage');
             }                        
         }
 
         function err(err){
             console.log(err);            
         }        
-    };   
-
-    resp.redirect('/');
+    };
     
 });
 
