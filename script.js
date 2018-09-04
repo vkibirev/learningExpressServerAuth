@@ -26,8 +26,11 @@ class DB {
 }
 
 app.get('/userpage', function(req, resp) {    
-    connection.then(onConnect).then(onFound).then(checkSessionId);
-    console.log(req.session.currentActiveUser);
+    connection.then(onConnect
+             ).then(onFound
+             ).then(checkSessionId);
+
+    console.log('Session active user id', req.session.currentActiveUser); //debug
     
     function onConnect(client) {
         const db = client.db('users');
@@ -35,17 +38,18 @@ app.get('/userpage', function(req, resp) {
         return col.find({_id:{$eq:req.session.currentActiveUser}});
     }
 
-    function onFound(cursor) {
+    function onFound(cursor) {        
         return cursor.toArray();
     }
 
     function checkSessionId(data) {
+        console.log('Array with found results ', data); //debug
+        
         if(data.length) {
-            req.session.currentActiveUser = null;
             console.log('into ', req.session.currentActiveUser);
-            resp.end('right id');
+            resp.render('userpage');
         } else {
-            console.log('wrong id');            
+            console.log('wrong id');      
             resp.redirect('/');
         }
     }
@@ -74,7 +78,7 @@ app.post('/', function(req, resp) {
 
         function checkUser(cursor) { 
             if (cursor.length) {
-                req.session.currentActiveUser = cursor[0]._id;      
+                req.session.currentActiveUser = cursor[0]._id;                      
                 resp.redirect('/userpage');                
             } else {
                 userDataCollection.insertOne(data);
