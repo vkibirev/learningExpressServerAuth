@@ -3,12 +3,13 @@
 <head>
     <meta charset="utf-8" />
     <title>User Page</title>
+    <link href='../public/style.css' rel='stylesheet'></link>
 </head>
 <body>
     <h1>You are logged in</h1>
-    <p>Hello , username</p>
-    <form action="get">
-        <button name="logout">Logout</button>
+    <p>Hello , {{ username }}</p>
+    <form action="" method="post">
+        <button id="logout" name="logout" value="loggedout">Logout</button>
     </form>
 </body>
 </html>
